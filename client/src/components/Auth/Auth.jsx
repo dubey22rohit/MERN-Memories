@@ -1,30 +1,68 @@
 import React, { useState } from "react";
+import { GoogleLogin } from "react-google-login";
+import { useDispatch } from "react-redux";
+import { useHistory } from "react-router-dom";
+
 import {
   Avatar,
   Container,
   Grid,
   Paper,
-  
   Typography,
   Button,
 } from "@material-ui/core";
+import {signup,signin} from '../../actions/auth'
 import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import useStyles from "./styles";
 import Input from "./Input";
+import Icon from "./Icon";
 const Auth = () => {
+  const initialState = {
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  };
   const classes = useStyles();
   const [showPassword, setShowPassword] = useState(false);
-  const [isSignUp,setIsSignUp] = useState(false)
-  
-  const handleSubmit = () => {};
-  const handleChange = () => {};
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [formData,setFormData] = useState(initialState)
+  const dispatch = useDispatch();
+  const history = useHistory();
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if(isSignUp){
+      dispatch(signup(formData,history))
+    }else{
+      dispatch(signin(formData,history))
+    }
+  };
+  const handleChange = (e) => {
+    setFormData({...formData,[e.target.name] : e.target.value})
+  };
   const handleShowPassword = () => {
     setShowPassword((pervShowPassword) => !pervShowPassword);
   };
-  const switchMode=()=>{
-    setIsSignUp((prevIsSignUp)=>!prevIsSignUp)
-    handleShowPassword(false)
-  }
+  const switchMode = () => {
+    setIsSignUp((prevIsSignUp) => !prevIsSignUp);
+    setShowPassword(false);
+  };
+  const googleSuccess = async (res) => {
+    const result = res?.profileObj;
+    const token = res?.tokenId;
+    try {
+      dispatch({ type: "AUTH", payload: { result, token } });
+      history.push("/");
+    } catch (error) {
+      console.log(error);
+    }
+    //console.log(res)
+  };
+  const googleFailure = (error) => {
+    console.log(error);
+    console.log("Failed to sign IN");
+  };
   return (
     <Container component="main" maxWidth="xs">
       <Paper className={classes.paper} elevation={3}>
@@ -32,19 +70,19 @@ const Auth = () => {
           <LockOutlinedIcon />
         </Avatar>
         <Typography variant="h5">{isSignUp ? "Sign Up" : "Sign In"}</Typography>
-        <form classname={classes.form} onSubmit={handleSubmit}>
+        <form className={classes.form} onSubmit={handleSubmit}>
           <Grid container spacing={2}>
             {isSignUp && (
               <>
                 <Input
-                  name="firstname"
+                  name="firstName"
                   label="First Name"
                   handleChange={handleChange}
                   autoFocus
                   half
                 />
                 <Input
-                  name="lastname"
+                  name="lastName"
                   label="Last Name"
                   handleChange={handleChange}
                   half
@@ -73,6 +111,7 @@ const Auth = () => {
               />
             )}
           </Grid>
+
           <Button
             type="submit"
             fullWidth
@@ -82,12 +121,33 @@ const Auth = () => {
           >
             {isSignUp ? "SignUp" : "SignIn"}
           </Button>
-          <Grid container>
-                <Grid item justify="flex-end">
-                    <Button onClick = {switchMode}>
-                        {isSignUp ? `Already have an account?Sign IN` : `Don't have an account?Sign UP`}
-                    </Button>
-                </Grid>
+          <GoogleLogin
+            clientId = "your google client ID"
+            render={(renderProps) => (
+              <Button
+                className={classes.googleButton}
+                color="primary"
+                fullWidth
+                onClick={renderProps.onClick}
+                disabled={renderProps.disabled}
+                startIcon={<Icon />}
+                variant="contained"
+              >
+                Google Sign IN
+              </Button>
+            )}
+            onSuccess={googleSuccess}
+            onFailure={googleFailure}
+            cookiePolicy="single_host_origin"
+          ></GoogleLogin>
+          <Grid container justify="center">
+            <Grid item>
+              <Button onClick={switchMode}>
+                {isSignUp
+                  ? `Already have an account?Sign IN`
+                  : `Don't have an account?Sign UP`}
+              </Button>
+            </Grid>
           </Grid>
         </form>
       </Paper>
